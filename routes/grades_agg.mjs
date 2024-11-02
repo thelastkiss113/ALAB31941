@@ -84,21 +84,28 @@ router.get("/learner/:id/avg-class", async (req, res) => {
   else res.send(result).status(200);
 });
 
-
-
-
 router.get('/stats', async (req, res) => {
   try {
-    let collection = await db.collection('grades');
-
-    let result = await collection.aggregate([
+    const result = await db.collection('grades').aggregate([
+      {
+        $unwind: '$scores'
+      },
       {
         $group: {
           _id: null,
           totalLearners: { $sum: 1 },
-          learnersAbove50: {
+          totalScores: { $sum: 1 },
+          totalWeightedScores: {
             $sum: {
-              $cond: [{ $gt: ["$average", 50] }, 1, 0]
+              $cond: [
+                { $eq: ['$scores.type', 'exam'] },
+                { $multiply: ['$scores.score', 0.5] },
+                { $cond: [
+                    { $eq: ['$scores.type', 'quiz'] },
+                    { $multiply: ['$scores.score', 0.3] },
+                    { $multiply: ['$scores.score', 0.2] }
+                  ]}
+              ]
             }
           }
         }
@@ -107,10 +114,15 @@ router.get('/stats', async (req, res) => {
         $project: {
           _id: 0,
           totalLearners: 1,
-          learnersAbove50: 1,
+          averageScore: { $divide: ['$totalWeightedScores', '$totalScores'] },
+          learnersAbove50: {
+            $sum: {
+              $cond: [{ $gt: ['$averageScore', 50] }, 1, 0]
+            }
+          },
           percentageAbove50: {
             $multiply: [
-              { $divide: ["$learnersAbove50", "$totalLearners"] },
+              { $divide: ['$learnersAbove50', '$totalLearners'] },
               100
             ]
           }
@@ -124,38 +136,39 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-
-router.get('/stats/:id', async (req, res) => {
+router.get("/stats/:id", async (req, res) => {
   try {
-    let collection = await db.collection('grades');
+    let collection = await db.collection("grades");
 
-    let result = await collection.aggregate([
-      { $match: { class_id: Number(req.params.id) } },
-      {
-        $group: {
-          _id: null,
-          totalLearners: { $sum: 1 },
-          learnersAbove50: {
-            $sum: {
-              $cond: [{ $gt: ["$average", 50] }, 1, 0]
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          totalLearners: 1,
-          learnersAbove50: 1,
-          percentageAbove50: {
-            $multiply: [
-              { $divide: ["$learnersAbove50", "$totalLearners"] },
-              100
-            ]
-          }
-        }
-      }
-    ]).toArray();
+    let result = await collection
+      .aggregate([
+        { $match: { class_id: Number(req.params.id) } },
+        {
+          $group: {
+            _id: null,
+            totalLearners: { $sum: 1 },
+            learnersAbove50: {
+              $sum: {
+                $cond: [{ $gt: ["$average", 50] }, 1, 0],
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            totalLearners: 1,
+            learnersAbove50: 1,
+            percentageAbove50: {
+              $multiply: [
+                { $divide: ["$learnersAbove50", "$totalLearners"] },
+                100,
+              ],
+            },
+          },
+        },
+      ])
+      .toArray();
 
     res.status(200).json(result);
   } catch (err) {
