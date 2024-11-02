@@ -1,6 +1,8 @@
 import express from "express";
+import gradesRouter from './routes/grades_agg.mjs';
 
-const PORT = 5050;
+
+const PORT = 3000;
 const app = express();
 
 import grades from "./routes/grades.mjs";

@@ -1,4 +1,3 @@
-// routes/grades.mjs
 import express from "express";
 import db from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
@@ -10,7 +9,7 @@ router.post("/", async (req, res) => {
   let collection = await db.collection("grades");
   let newDocument = req.body;
 
-  // rename fields for backwards compatibility
+  // Convert student_id to learner_id
   if (newDocument.student_id) {
     newDocument.learner_id = newDocument.student_id;
     delete newDocument.student_id;
@@ -134,42 +133,6 @@ router.delete("/class/:id", async (req, res) => {
   else res.send(result).status(200);
 });
 
-
-// Aggregation pipeline to calculate stats
-router.get('/stats', async (req, res) => {
-  try {
-    let collection = await db.collection('grades');
-
-    // Get total number of learners
-    const pipeline = [
-      {
-        $group: {
-          _id: null,
-          totalLearners: { $sum: 1 },
-          learnersAbove70: {
-            $sum: {
-              $cond: [{ $gt: ["$weightedAverage", 70] }, 1, 0]
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          totalLearners: 1,
-          learnersAbove70: 1,
-          percentageAbove70: {
-            $multiply: [{ $divide: ["$learnersAbove70", "$totalLearners"] }, 100]
-          }
-        }
-      }
-    ];
-
-    const stats = await collection.aggregate(pipeline).toArray();
-    res.status(200).json(stats);
-  } catch (err) {
-    res.status(500).send('Error fetching stats');
-  }
-});
 
 
 export default router;

@@ -1,4 +1,3 @@
-// routes/grades_agg.mjs
 import express from "express";
 import db from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
@@ -81,6 +80,85 @@ router.get("/learner/:id/avg-class", async (req, res) => {
 
   if (!result) res.send("Not found").status(404);
   else res.send(result).status(200);
+});
+
+
+
+
+router.get('/stats', async (req, res) => {
+  try {
+    let collection = await db.collection('grades');
+
+    let result = await collection.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalLearners: { $sum: 1 },
+          learnersAbove70: {
+            $sum: {
+              $cond: [{ $gt: ["$average", 70] }, 1, 0]
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalLearners: 1,
+          learnersAbove70: 1,
+          percentageAbove70: {
+            $multiply: [
+              { $divide: ["$learnersAbove70", "$totalLearners"] },
+              100
+            ]
+          }
+        }
+      }
+    ]).toArray();
+
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+router.get('/stats/:id', async (req, res) => {
+  try {
+    let collection = await db.collection('grades');
+
+    let result = await collection.aggregate([
+      { $match: { class_id: Number(req.params.id) } },
+      {
+        $group: {
+          _id: null,
+          totalLearners: { $sum: 1 },
+          learnersAbove70: {
+            $sum: {
+              $cond: [{ $gt: ["$average", 70] }, 1, 0]
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalLearners: 1,
+          learnersAbove70: 1,
+          percentageAbove70: {
+            $multiply: [
+              { $divide: ["$learnersAbove70", "$totalLearners"] },
+              100
+            ]
+          }
+        }
+      }
+    ]).toArray();
+
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

@@ -1,15 +1,30 @@
-//db/conn.mjs
+// db/conn.mjs
 import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
 
-const client = new MongoClient(process.env.ATLAS_URI);
+// Load environment variables from .env file
+dotenv.config();
 
-let conn;
-try {
-  conn = await client.connect();
-} catch (e) {
-  console.error(e);
+// Create a new MongoClient
+const client = new MongoClient(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+async function connectDB() {
+  let conn;
+  try {
+    // Connect to MongoDB
+    conn = await client.connect();
+    console.log("Connected to MongoDB");
+    
+    // Return the database object
+    return conn.db("sample_trainings"); // Change to "grades" as that's the database you want
+  } catch (e) {
+    console.error("Error connecting to MongoDB:", e);
+    throw e; // Re-throw the error for further handling
+  }
 }
 
-let db = conn.db("sample_training");
-
-export default db;
+// Export the database connection
+export default connectDB();
