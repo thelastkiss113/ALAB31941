@@ -1,30 +1,52 @@
-// db/conn.mjs
-import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
+//db/conn.mjs
 
-// Load environment variables from .env file
+import { MongoClient } from "mongodb";
+import dotenv from 'dotenv';
 dotenv.config();
 
-// Create a new MongoClient
-const client = new MongoClient(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 
-async function connectDB() {
-  let conn;
-  try {
-    // Connect to MongoDB
-    conn = await client.connect();
-    console.log("Connected to MongoDB");
-    
-    // Return the database object
-    return conn.db("sample_trainings"); // Change to "grades" as that's the database you want
-  } catch (e) {
-    console.error("Error connecting to MongoDB:", e);
-    throw e; // Re-throw the error for further handling
-  }
+const client = new MongoClient(process.env.ATLAS_URI);
+
+let conn;
+try {
+  conn = await client.connect();
+  console.log("Connected to MongoDB");
+
+  let db = conn.db("sample_training");
+  let collection = db.collection("grades");
+  await collection.createIndex({ class_id: 1 });
+  await collection.createIndex({ learner_id: 1 });
+  await collection.createIndex({ learner_id: 1, class_id: 1 });
+
+  await db.command({
+    collMod: 'grades',
+    validator: {
+      $jsonSchema: {
+        bsonType: 'object',
+        required: ['class_id', 'learner_id'],
+        properties: {
+          class_id: {
+            bsonType: 'int',
+            minimum: 0,
+            maximum: 300,
+            description: 'must be an integer in [0, 300] and is required'
+          },
+          learner_id: {
+            bsonType: 'int',
+            minimum: 0,
+            description: 'must be an integer greater than or equal to 0 and is required'
+          }
+        }
+      }
+    },
+    validationAction: 'warn'
+  });
+  
+
+} catch (e) {
+  console.error(e);
 }
 
-// Export the database connection
-export default connectDB();
+let db = conn.db("sample_training");
+
+export default db;

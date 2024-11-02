@@ -1,3 +1,4 @@
+// routes/grades.mjs
 import express from "express";
 import db from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
@@ -132,7 +133,5 @@ router.delete("/class/:id", async (req, res) => {
   if (!result) res.send("Not found").status(404);
   else res.send(result).status(200);
 });
-
-
 
 export default router;

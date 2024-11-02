@@ -1,3 +1,5 @@
+// routes/grades_agg.mjs
+
 import express from "express";
 import db from "../db/conn.mjs";
 import { ObjectId } from "mongodb";
@@ -94,9 +96,9 @@ router.get('/stats', async (req, res) => {
         $group: {
           _id: null,
           totalLearners: { $sum: 1 },
-          learnersAbove70: {
+          learnersAbove50: {
             $sum: {
-              $cond: [{ $gt: ["$average", 70] }, 1, 0]
+              $cond: [{ $gt: ["$average", 50] }, 1, 0]
             }
           }
         }
@@ -105,10 +107,10 @@ router.get('/stats', async (req, res) => {
         $project: {
           _id: 0,
           totalLearners: 1,
-          learnersAbove70: 1,
-          percentageAbove70: {
+          learnersAbove50: 1,
+          percentageAbove50: {
             $multiply: [
-              { $divide: ["$learnersAbove70", "$totalLearners"] },
+              { $divide: ["$learnersAbove50", "$totalLearners"] },
               100
             ]
           }
@@ -133,9 +135,9 @@ router.get('/stats/:id', async (req, res) => {
         $group: {
           _id: null,
           totalLearners: { $sum: 1 },
-          learnersAbove70: {
+          learnersAbove50: {
             $sum: {
-              $cond: [{ $gt: ["$average", 70] }, 1, 0]
+              $cond: [{ $gt: ["$average", 50] }, 1, 0]
             }
           }
         }
@@ -144,10 +146,10 @@ router.get('/stats/:id', async (req, res) => {
         $project: {
           _id: 0,
           totalLearners: 1,
-          learnersAbove70: 1,
-          percentageAbove70: {
+          learnersAbove50: 1,
+          percentageAbove50: {
             $multiply: [
-              { $divide: ["$learnersAbove70", "$totalLearners"] },
+              { $divide: ["$learnersAbove50", "$totalLearners"] },
               100
             ]
           }
